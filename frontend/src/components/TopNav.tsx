@@ -1,15 +1,6 @@
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Settings, LogOut, User } from "lucide-react";
-import logo from "../assets/PointerCreekLogo.png";
+import { useAuth } from "../AuthContext";
+import { LogOut } from "lucide-react";
 
 interface TopNavProps {
   onNavigate: (view: string) => void;
@@ -17,49 +8,27 @@ interface TopNavProps {
 }
 
 export function TopNav({ onNavigate, userName }: TopNavProps) {
-  return (
-    <div className="h-16 bg-white border-b border-border flex items-center justify-between px-6 sticky top-0 z-50">
-      <div className="flex items-center gap-3">
-        <img src={logo} alt="Pointer Creek Wealth Management" className="h-12 w-auto" />
-        <div className="border-l border-border h-8 mx-2" />
-        <span className="text-[#5a7a7c]">AI Platform</span>
-      </div>
+  const { logout } = useAuth();
 
-      <div className="flex items-center gap-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 hover:bg-gray-50">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="" alt={userName} />
-                <AvatarFallback className="bg-[#5a7a7c] text-white">
-                  {userName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden md:inline">{userName}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onNavigate("settings")}>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onNavigate("settings")}>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+  return (
+    <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1
+            className="text-2xl font-bold text-[#5a7a7c] cursor-pointer"
+            onClick={() => onNavigate("dashboard")}
+          >
+            AI Platform
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600">{userName}</span>
+          <Button variant="ghost" size="sm" onClick={logout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }

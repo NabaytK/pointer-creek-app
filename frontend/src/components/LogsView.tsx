@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import {
   Table,
   TableBody,
@@ -11,106 +13,108 @@ import {
   TableRow,
 } from "./ui/table";
 import { ScrollArea } from "./ui/scroll-area";
-import { Search, FileText, Download } from "lucide-react";
+import { Search, FileText, Download, Eye } from "lucide-react";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+interface Chat {
+  id: string;
+  assistant_id: string;
+  assistant_name: string;
+  timestamp: string;
+  preview: string;
+  messages: Array<{ role: string; content: string }>;
+  user_name: string;
+  user_email: string;
+}
 
 interface LogsViewProps {
   onOpenChat: (assistantId: string) => void;
 }
 
-const mockLogs = [
-  {
-    id: "1",
-    assistant: "Marketing Assistant",
-    assistantId: "marketing",
-    date: "2025-10-17",
-    time: "14:30",
-    messages: 12,
-    status: "completed",
-    topic: "Q4 Campaign Strategy",
-  },
-  {
-    id: "2",
-    assistant: "Contract Analyzer",
-    assistantId: "contract",
-    date: "2025-10-17",
-    time: "11:15",
-    messages: 8,
-    status: "completed",
-    topic: "Vendor Agreement Review",
-  },
-  {
-    id: "3",
-    assistant: "Investment Analyst",
-    assistantId: "investment",
-    date: "2025-10-16",
-    time: "16:45",
-    messages: 24,
-    status: "completed",
-    topic: "Tech Sector Analysis",
-  },
-  {
-    id: "4",
-    assistant: "Social Media Assistant",
-    assistantId: "social",
-    date: "2025-10-16",
-    time: "09:20",
-    messages: 15,
-    status: "completed",
-    topic: "Monthly Content Calendar",
-  },
-  {
-    id: "5",
-    assistant: "Note Taker AI",
-    assistantId: "notetaker",
-    date: "2025-10-16",
-    time: "08:00",
-    messages: 18,
-    status: "completed",
-    topic: "Client Strategy Session Notes",
-  },
-  {
-    id: "6",
-    assistant: "Meeting Prep Assistant",
-    assistantId: "meeting",
-    date: "2025-10-15",
-    time: "13:00",
-    messages: 6,
-    status: "completed",
-    topic: "Board Meeting Preparation",
-  },
-  {
-    id: "7",
-    assistant: "Tech Support Assistant",
-    assistantId: "tech",
-    date: "2025-10-15",
-    time: "10:30",
-    messages: 10,
-    status: "completed",
-    topic: "Network Troubleshooting",
-  },
-  {
-    id: "8",
-    assistant: "Marketing Assistant",
-    assistantId: "marketing",
-    date: "2025-10-14",
-    time: "15:15",
-    messages: 18,
-    status: "completed",
-    topic: "Email Campaign Draft",
-  },
-  {
-    id: "9",
-    assistant: "Contract Analyzer",
-    assistantId: "contract",
-    date: "2025-10-14",
-    time: "08:45",
-    messages: 20,
-    status: "completed",
-    topic: "Partnership Agreement Analysis",
-  },
-];
-
 export function LogsView({ onOpenChat }: LogsViewProps) {
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+
+  useEffect(() => {
+    fetchChats();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredChats(chats);
+    } else {
+      const filtered = chats.filter(
+        (chat) =>
+          chat.assistant_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          chat.preview.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredChats(filtered);
+    }
+  }, [searchQuery, chats]);
+
+  const fetchChats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/chats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setChats(data.chats.reverse());
+      setFilteredChats(data.chats.reverse());
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const viewFullChat = async (chatId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/chats/${chatId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSelectedChat(data.chat);
+    } catch (error) {
+      console.error("Error fetching chat details:", error);
+    }
+  };
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString();
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const exportChat = (chat: Chat) => {
+    const content = JSON.stringify(chat, null, 2);
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat_${chat.id}.json`;
+    a.click();
+  };
+
+  const exportAll = () => {
+    const content = JSON.stringify(chats, null, 2);
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `all_chats_${new Date().toISOString()}.json`;
+    a.click();
+  };
+
   return (
     <div className="p-8">
       <div className="mb-6">
@@ -125,9 +129,16 @@ export function LogsView({ onOpenChat }: LogsViewProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Recent Sessions</CardTitle>
-              <CardDescription>All conversations are automatically saved and encrypted</CardDescription>
+              <CardDescription>
+                All conversations are automatically saved and encrypted
+              </CardDescription>
             </div>
-            <Button variant="outline" className="gap-2 hover:bg-gray-50">
+            <Button 
+              variant="outline" 
+              className="gap-2 hover:bg-gray-50"
+              onClick={exportAll}
+              disabled={chats.length === 0}
+            >
               <Download className="h-4 w-4" />
               Export All
             </Button>
@@ -140,70 +151,137 @@ export function LogsView({ onOpenChat }: LogsViewProps) {
               <Input
                 placeholder="Search conversations..."
                 className="pl-10 bg-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
 
           <ScrollArea className="h-[600px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Assistant</TableHead>
-                  <TableHead>Topic</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Messages</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockLogs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#5a7a7c]" />
-                        {log.assistant}
-                      </div>
-                    </TableCell>
-                    <TableCell>{log.topic}</TableCell>
-                    <TableCell>{log.date}</TableCell>
-                    <TableCell>{log.time}</TableCell>
-                    <TableCell>{log.messages}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-50 text-green-700 hover:bg-green-50"
-                      >
-                        {log.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => onOpenChat(log.assistantId)}
-                          className="hover:bg-gray-100"
-                        >
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="hover:bg-gray-100"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="text-center py-12 text-gray-500">
+                Loading chat history...
+              </div>
+            ) : filteredChats.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>
+                  {searchQuery ? "No chats found matching your search" : "No chat history yet"}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Assistant</TableHead>
+                    <TableHead>Topic</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Messages</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredChats.map((chat) => (
+                    <TableRow key={chat.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{chat.user_name}</p>
+                          <p className="text-xs text-gray-500">{chat.user_email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-[#5a7a7c]" />
+                          {chat.assistant_name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {chat.preview || "No preview available"}
+                      </TableCell>
+                      <TableCell>{formatDate(chat.timestamp)}</TableCell>
+                      <TableCell>{formatTime(chat.timestamp)}</TableCell>
+                      <TableCell>{chat.messages.length}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-50 text-green-700 hover:bg-green-50"
+                        >
+                          completed
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => viewFullChat(chat.id)}
+                            className="hover:bg-gray-100"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onOpenChat(chat.assistant_id)}
+                            className="hover:bg-gray-100"
+                          >
+                            Open
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="hover:bg-gray-100"
+                            onClick={() => exportChat(chat)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Full Chat Dialog */}
+      <Dialog open={!!selectedChat} onOpenChange={() => setSelectedChat(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedChat?.assistant_name} - {selectedChat?.user_name}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[600px] p-4">
+            <div className="space-y-4">
+              {selectedChat?.messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                      message.role === "user"
+                        ? "bg-[#5a7a7c] text-white"
+                        : "bg-gray-100 text-gray-900"
+                    }`}
+                  >
+                    <p className="text-xs opacity-70 mb-1">
+                      {message.role === "user" ? selectedChat.user_name : selectedChat.assistant_name}
+                    </p>
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

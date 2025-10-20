@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { AuthProvider, useAuth } from "./AuthContext";
+import { LoginPage } from "./components/LoginPage";
 import { TopNav } from "./components/TopNav";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardView } from "./components/DashboardView";
@@ -37,15 +39,18 @@ const assistantDetails = {
   },
 };
 
-export default function App() {
+function AppContent() {
+  const { user, isLoading } = useAuth();
   const [activeView, setActiveView] = useState("dashboard");
   const [activeAssistant, setActiveAssistant] = useState<string | null>(null);
 
-  const userData = {
-    name: "Alex Morgan",
-    email: "alex.morgan@pointercreek.com",
-    department: "Marketing",
-  };
+  if (isLoading) {
+    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   const handleNavigate = (view: string) => {
     if (["marketing", "social", "contract", "investment", "notetaker", "meeting", "tech"].includes(view)) {
@@ -71,7 +76,7 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-[#f5f5f0]">
-      <TopNav onNavigate={handleNavigate} userName={userData.name} />
+      <TopNav onNavigate={handleNavigate} userName={user.name} />
       
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeView={activeView} onNavigate={handleNavigate} />
@@ -79,8 +84,8 @@ export default function App() {
         <main className="flex-1 overflow-auto">
           {activeView === "dashboard" && (
             <DashboardView
-              userName={userData.name}
-              userDepartment={userData.department}
+              userName={user.name}
+              userDepartment={user.department}
               onLaunchAssistant={handleLaunchAssistant}
             />
           )}
@@ -96,9 +101,9 @@ export default function App() {
           
           {activeView === "settings" && (
             <SettingsView
-              userName={userData.name}
-              userEmail={userData.email}
-              userDepartment={userData.department}
+              userName={user.name}
+              userEmail={user.email}
+              userDepartment={user.department}
             />
           )}
           
@@ -108,5 +113,13 @@ export default function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
