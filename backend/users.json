@@ -3,14 +3,14 @@
     "email": "nabaytdebesay@gmail.com",
     "name": "nabayt",
     "department": "it",
-    "password": "a200e492dffb34f9338af6eea2e585770fc435598deffd32d22f1942182a3f7d",
+    "password": ,
     "created_at": "2025-10-20T17:18:48.017343"
   },
   "nkibreab@student.ysu.edu": {
     "email": "nkibreab@student.ysu.edu",
     "name": "david",
     "department": "k",
-    "password": "47c24fd0f61493365b78bc9ebbcc0d3ef534f67bb7d6cb0f5250422a324d1c66",
+    "password": ,
     "created_at": "2025-10-20T17:20:08.853776"
   }
 }
